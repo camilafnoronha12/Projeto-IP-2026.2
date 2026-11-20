@@ -5,7 +5,7 @@ pygame.display.set_caption("janela")
 relogio = pygame.time.Clock()
 rodando=True
 # Personagem: por enquanto um retângulo (x, y, largura, altura)
-jogador = pygame.Rect(375, 275, 50, 50)
+jogador = pygame.Rect(683, 360, 50, 50)
 velocidade = 5
 while rodando:# Eventos (fechar janela, teclado, mouse...)
     for evento in pygame.event.get():
