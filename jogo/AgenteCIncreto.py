@@ -4,7 +4,6 @@ pygame.init()
 tela=pygame.display.set_mode((1366, 720))
 pygame.display.set_caption("Agente CIncreto")
 relogio = pygame.time.Clock()
-rodando=True
 CAMINHO = os.path.dirname(os.path.abspath(__file__))
 PASTA_ASSETS = os.path.join(CAMINHO, "assets")
 class Jogador:
