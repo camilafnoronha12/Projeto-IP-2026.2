@@ -1,31 +1,44 @@
 import pygame
+import os
 pygame.init()
 tela=pygame.display.set_mode((1366, 720))
-pygame.display.set_caption("janela")
+pygame.display.set_caption("Agente CIncreto")
 relogio = pygame.time.Clock()
 rodando=True
-# Personagem: por enquanto um retângulo (x, y, largura, altura)
-jogador = pygame.Rect(683, 360, 50, 50)
-velocidade = 5
-while rodando:# Eventos (fechar janela, teclado, mouse...)
+CAMINHO = os.path.dirname(os.path.abspath(__file__))
+PASTA_ASSETS = os.path.join(CAMINHO, "assets")
+class Jogador:
+    def __init__(self, x, y):
+        self.imagem = pygame.image.load(os.path.join(PASTA_ASSETS, "perna_cabeluda.png")).convert_alpha()
+        self.imagem = pygame.transform.scale(self.imagem, (60, 60))
+        self.rect = self.imagem.get_rect(topleft=(x, y))
+        self.velocidade = 5
+    def mover(self, teclas):
+        if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
+            self.rect.x -= self.velocidade
+        if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
+            self.rect.x += self.velocidade
+        if teclas[pygame.K_UP] or teclas[pygame.K_w]:
+            self.rect.y -= self.velocidade
+        if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
+            self.rect.y += self.velocidade
+        # Mantém dentro da tela
+        self.rect.clamp_ip(tela.get_rect())
+    def desenhar(self, superficie):
+        superficie.blit(self.imagem, self.rect)
+jogador = Jogador(370, 270)
+rodando = True
+while rodando:
+    # Eventos
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             rodando = False
-    # Movimento com as setas ou WASD
+    # Lógica
     teclas = pygame.key.get_pressed()
-    if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
-        jogador.x -= velocidade
-    if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
-        jogador.x += velocidade
-    if teclas[pygame.K_UP] or teclas[pygame.K_w]:
-        jogador.y -= velocidade
-    if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
-        jogador.y += velocidade
-    # Impede de sair da tela
-    jogador.clamp_ip(tela.get_rect())
-    # desenhos
-    tela.fill((0, 0, 0))  # cor de fundo em RGB
-    pygame.draw.rect(tela, (251, 126, 0), jogador)
+    jogador.mover(teclas)
+    # Desenho
+    tela.fill((30, 30, 40))
+    jogador.desenhar(tela)
     pygame.display.flip()
-    relogio.tick(60)#limita o jogo a 60fps
+    relogio.tick(60)
 pygame.quit()
