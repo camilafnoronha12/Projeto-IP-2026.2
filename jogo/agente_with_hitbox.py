@@ -1,22 +1,73 @@
 import pygame
 import os
+import random
 pygame.init()
+LARGURA, ALTURA = 1366, 720
 tela = pygame.display.set_mode((1366, 720))
 pygame.display.set_caption("Agente CIncreto")
 relogio = pygame.time.Clock()
 CAMINHO = os.path.dirname(os.path.abspath(__file__))
 PASTA_ASSETS = os.path.join(CAMINHO, "assets")
+spawn = (653, 640)  # spawn dos inimigos
+reinicio = 1
+
+# # cenário de fundo  - Reativar quando tiver cenario
+# cenario = pygame.image.load(os.path.join(
+#     PASTA_ASSETS, "capa_agente_cincretov1.png")).convert()
+# cenario = pygame.transform.scale(cenario, tela.get_size())
+
+# # Cada obstáculo - pygame.Rect(x, y, largura, altura), em pixels da imagem.  - Reativar quando houver cenario
+# HITBOXES = [
+#     # pygame.Rect(605, 223, 299, 483),
+# ]
 
 
-# cenário de fundo
-cenario = pygame.image.load(os.path.join(
-    PASTA_ASSETS, "capa_agente_cincretov1.png")).convert()
-cenario = pygame.transform.scale(cenario, tela.get_size())
+class Inimigo:
+    def __init__(self, y, direcao, velocidade, imagem):
+        # vira a imagem para o lado em que ele anda
+        self.imagem = imagem if direcao > 0 else pygame.transform.flip(
+            imagem, True, False)
+        self.rect = self.imagem.get_rect(centery=y)
+        # nasce num extremo da tela, para ir até o outro lado.
+        self.rect.x = -self.rect.w if direcao > 0 else LARGURA
+        self.direcao = direcao
+        self.velocidade = velocidade
 
-# Cada obstáculo - pygame.Rect(x, y, largura, altura), em pixels da imagem.
-HITBOXES = [
-    pygame.Rect(605, 223, 299, 483),
-]
+    def mover(self):
+        self.rect.x += self.direcao * self.velocidade
+
+    def saiu(self):
+        return self.rect.right < 0 or self.rect.left > LARGURA
+
+    def desenhar(self, superficie):
+        superficie.blit(self.imagem, self.rect)
+
+
+class Faixa:
+    def __init__(self, y, direcao, velocidade, intervalo, imagem):
+        self.y, self.direcao, self.velocidade = y, direcao, velocidade
+        self.intervalo = intervalo      # intervalo entre os inimigos surgindo
+        self.imagem = imagem
+        self.proximo = 0                # quando nasce o próximo
+
+    def gerar(self, agora, inimigos):
+        if agora >= self.proximo:
+            inimigos.append(Inimigo(self.y, self.direcao,
+                            self.velocidade, self.imagem))
+            # randomiza para os inimigos surgirem de forma irregular
+            self.proximo = agora + random.randint(
+                int(self.intervalo * 0.7), int(self.intervalo * 1.5))
+
+
+IMG_INIMIGO = pygame.image.load(os.path.join(
+    PASTA_ASSETS, "car_image.png")).convert_alpha()
+IMG_INIMIGO = pygame.transform.scale(IMG_INIMIGO, (90, 50))
+FAIXAS = [  # y, direcao (1 = direita, -1 = esquerda), velocidade, intervalo
+    Faixa(75, 1, 4, 1600, IMG_INIMIGO),
+    Faixa(200, -1, 6, 1200, IMG_INIMIGO),
+    Faixa(325, 1, 5, 1400, IMG_INIMIGO),
+    Faixa(450, -1, 3, 2000, IMG_INIMIGO),
+    Faixa(575, 1, 7, 1000, IMG_INIMIGO),]
 
 
 class Jogador:
@@ -51,14 +102,15 @@ class Jogador:
             self.eixo = "x"
         elif dy:
             self.eixo = "y"
-        if self.rect.collidelist(HITBOXES) != -1:
-            self.rect.topleft = (x0, y0)
+        # if self.rect.collidelist(HITBOXES) != -1:  #Reativar quando tiver hitboxes definidas nos cenarios
+        #     self.rect.topleft = (x0, y0)
 
     def desenhar(self, superficie):
         superficie.blit(self.imagem, self.rect)
 
 
-jogador = Jogador(370, 270)
+jogador = Jogador(*spawn)
+inimigos = []
 rodando = True
 while rodando:
     # Eventos
@@ -68,10 +120,30 @@ while rodando:
     # Lógica
     teclas = pygame.key.get_pressed()
     jogador.mover(teclas)
+
+    # Nascimento dos inimigos
+    agora = pygame.time.get_ticks()
+    for f in FAIXAS:
+        f.gerar(agora, inimigos)
+    for i in inimigos:
+        i.mover()
+    inimigos = [i for i in inimigos if not i.saiu()]
+
+# Colisão faz voltar do começo
+    for i in inimigos:
+        if jogador.rect.inflate(-20, -20).colliderect(i.rect.inflate(-10, -10)):
+            reinicio -= 1
+            jogador.rect.topleft = spawn
+            break
+
     # Desenho
-    tela.fill((30, 30, 40))
+    tela.fill((0, 255, 0))
     # cenário por cima do fill, antes do resto
-    tela.blit(cenario, (0, 0))
+    # tela.blit(cenario, (0, 0)) - comentei por não ter cenario
+
+# desenhar inimigo
+    for i in inimigos:
+        i.desenhar(tela)
     jogador.desenhar(tela)
     pygame.display.flip()
     relogio.tick(60)
