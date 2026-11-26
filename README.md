@@ -12,19 +12,11 @@ O objetivo principal é conduzir o personagem por três fases distintas, avança
 
 ## Fases:
 
-> [!NOTE]
-> **Fase 1- CIn (UFPE)**
-> A Perna Cabeluda sai do Centro de Informática e encara as primeiras ruas, com trânsito mais leve.
-> **Obstáculos:** pessoas de bicicleta, estudantes andando pelo campus, carros em baixa velocidade.
-
-> [!TIP]
-> **Fase 2 – Boa Viagem**
-> A Perna chega à orla mais famosa do Recife. Agora, além do trânsito pesado da avenida, é preciso tomar cuidado com o mar: aqui os tubarões não são só lenda.
-> **Obstáculos:** carros e ônibus na avenida e tubarões.
-
-> [!WARNING]
-> **Fase 3 – Do Recife Antigo ao Cinema São Luiz**
-> A fase mais difícil. Em pleno carnaval, a Perna Cabeluda precisa atravessar o Recife Antigo e chegar à Rua da Aurora, abrindo caminho entre bloquinhos e foliões para conseguir entrar no Cinema São Luiz.
-> **Obstáculos:** bloquinhos de carnaval, foliões e carros.
+| Fase | Cenário | Obstáculos | Descrição |
+| :---: | --- | --- | --- |
+| **1** | Centro de Informática (UFPE) | Estudantes de bicicleta e pessoas andando pelo campus | A jornada começa no CIn. Fase mais tranquila, para o jogador aprender os controles. |
+| **2** | Boa Viagem | Carros, ônibus e tubarões | A Perna chega à orla mais famosa do Recife, onde os tubarões não são só lenda. A dificuldade aumenta. |
+| **3** | Do Recife Antigo ao Cinema São Luiz | Bloquinhos de carnaval, foliões e carros | A fase mais difícil: em pleno carnaval, a Perna precisa chegar à Rua da Aurora e entrar no São Luiz. |
+| 🏆 | Cinema São Luiz | — | A Perna Cabeluda senta ao lado de Wagner Moura e Kleber Mendonça Filho para assistir a *O Agente Secreto*. |
 
 
