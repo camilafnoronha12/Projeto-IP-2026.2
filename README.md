@@ -8,8 +8,7 @@ Integrantes: Camila Alves Ribeiro, Flavio Noberto Marques de Santana, Eduardo Ba
 ## 🎮Sobre o jogo:
 Agente CIncreto é um jogo 2D em pixel art, desenvolvido em Python com a biblioteca PyGame que é inspirada na mecânica de Crossy Road e no universo do filme O Agente Secreto. Nele, o jogador assume o controle da Perna Cabeluda, famosa lenda urbana recifense, em uma aventura pelas ruas e cenários que remetem à cidade do Recife. 
 
-O objetivo principal é conduzir o personagem por três fases distintas, avançando pelos cenários, atravessando ruas, desviando de obstáculos em movimento e coletando itens ao longo do percurso. Cada fase apresenta desafios próprios e níveis progressivos de dificuldade, até que a Perna Cabeluda alcance seu destino final, em Cannes, onde a aguarda o prêmio que simboliza a conclusão de sua jornada.
-
+O objetivo principal é conduzir o personagem por três fases distintas, avançando pelos cenários, atravessando ruas, desviando de obstáculos em movimento e coletando itens ao longo do percurso. Cada fase apresenta desafios próprios e níveis progressivos de dificuldade, até que a Perna Cabeluda alcance seu destino final: o Cinema São Luiz, onde uma poltrona a espera para assistir a O Agente Secreto.
 ## Fases:
 
 | Fase | Cenário | Obstáculos | Descrição |
