@@ -3,12 +3,18 @@ import os
 import random
 pygame.init()
 LARGURA, ALTURA = 1366, 720
+ALTURA_MAPA = 2160  # Exemplo: 3x a altura da tela (ajuste conforme a imagem do cenário)
+MAPA_RECT = pygame.Rect(0, 0, LARGURA, ALTURA_MAPA)
+
 tela = pygame.display.set_mode((1366, 720))
 pygame.display.set_caption("Agente CIncreto")
 relogio = pygame.time.Clock()
 CAMINHO = os.path.dirname(os.path.abspath(__file__))
 PASTA_ASSETS = os.path.join(CAMINHO, "assets")
-spawn = (653, 640)  # spawn dos inimigos
+
+spawn = (653, ALTURA_MAPA - 80)  # Nasce na parte de baixo do mapa
+
+
 reinicio = 1
 
 # # cenário de fundo  - Reativar quando tiver cenario
@@ -39,8 +45,8 @@ class Inimigo:
     def saiu(self):
         return self.rect.right < 0 or self.rect.left > LARGURA
 
-    def desenhar(self, superficie):
-        superficie.blit(self.imagem, self.rect)
+    def desenhar(self, superficie, camera_y):
+        superficie.blit(self.imagem, self.rect.move(0, -camera_y))
 
 
 class Faixa:
@@ -62,12 +68,26 @@ class Faixa:
 IMG_INIMIGO = pygame.image.load(os.path.join(
     PASTA_ASSETS, "bicicleta_1.png")).convert_alpha()
 IMG_INIMIGO = pygame.transform.scale(IMG_INIMIGO, (90, 70))
-FAIXAS = [  # y, direcao (1 = direita, -1 = esquerda), velocidade, intervalo
-    Faixa(75, 1, 4, 1600, IMG_INIMIGO),
-    Faixa(200, -1, 6, 1200, IMG_INIMIGO),
-    Faixa(325, 1, 5, 1400, IMG_INIMIGO),
-    Faixa(450, -1, 3, 2000, IMG_INIMIGO),
-    Faixa(575, 1, 7, 1000, IMG_INIMIGO),]
+
+FAIXAS = [  # y, direcao (1 = direita, -1 = esquerda), velocidade, intervalo, imagem
+    # Parte de cima do mapa (perto da chegada)
+    Faixa(150, 1, 7, 1000, IMG_INIMIGO),
+    Faixa(300, -1, 6, 1200, IMG_INIMIGO),
+    Faixa(450, 1, 5, 1400, IMG_INIMIGO),
+    Faixa(600, -1, 6, 1100, IMG_INIMIGO),
+
+    # Meio do mapa
+    Faixa(800, 1, 4, 1600, IMG_INIMIGO),
+    Faixa(950, -1, 5, 1300, IMG_INIMIGO),
+    Faixa(1100, 1, 6, 1200, IMG_INIMIGO),
+    Faixa(1250, -1, 3, 1800, IMG_INIMIGO),
+
+    # Parte de baixo do mapa (perto do spawn em y = 2080)
+    Faixa(1450, 1, 5, 1400, IMG_INIMIGO),
+    Faixa(1600, -1, 4, 1500, IMG_INIMIGO),
+    Faixa(1750, 1, 6, 1200, IMG_INIMIGO),
+    Faixa(1900, -1, 3, 1700, IMG_INIMIGO),
+]
 
 
 class Jogador:
@@ -89,8 +109,8 @@ class Jogador:
             self.rect.y -= self.velocidade
         if teclas[pygame.K_DOWN] or teclas[pygame.K_s]:
             self.rect.y += self.velocidade
-        # Mantém dentro da tela
-        self.rect.clamp_ip(tela.get_rect())
+        # Troquei o limite da tela pelo limite do mapa:
+        self.rect.clamp_ip(MAPA_RECT)
         # sem diagonal
         dx, dy = self.rect.x - x0, self.rect.y - y0
         if dx and dy:
@@ -105,12 +125,18 @@ class Jogador:
         # if self.rect.collidelist(HITBOXES) != -1:  #Reativar quando tiver hitboxes definidas nos cenarios
         #     self.rect.topleft = (x0, y0)
 
-    def desenhar(self, superficie):
-        superficie.blit(self.imagem, self.rect)
+    def desenhar(self, superficie, camera_y):
+        superficie.blit(self.imagem, self.rect.move(0, -camera_y))
 
 
 jogador = Jogador(*spawn)
 inimigos = []
+
+# Configuração da câmera estilo Crossy Road
+VELOCIDADE_CAMERA = 0.5  # Ajuste aqui se quiser que a tela suba mais rápido ou devagar
+camera_y = float(ALTURA_MAPA - ALTURA)  # Começa mostrando o fundo do
+camera_ativa = False
+
 rodando = True
 while rodando:
     # Eventos
@@ -119,7 +145,10 @@ while rodando:
             rodando = False
     # Lógica
     teclas = pygame.key.get_pressed()
+    pos_antes = jogador.rect.topleft
     jogador.mover(teclas)
+    if jogador.rect.topleft != pos_antes:
+        camera_ativa = True
 
     # Nascimento dos inimigos
     agora = pygame.time.get_ticks()
@@ -129,22 +158,46 @@ while rodando:
         i.mover()
     inimigos = [i for i in inimigos if not i.saiu()]
 
-# Colisão faz voltar do começo
+    # Câmera (só começa a subir após o primeiro passo do jogador)
+    if camera_ativa:
+        camera_y -= VELOCIDADE_CAMERA
+        alvo_camera = jogador.rect.centery - ALTURA // 2
+        if alvo_camera < camera_y:
+            camera_y = alvo_camera
+        camera_y = max(0, camera_y)
+
+    # Câmera engoliu o jogador
+    if jogador.rect.top > camera_y + ALTURA:
+        reinicio -= 1
+        jogador.rect.topleft = spawn
+        camera_y = float(ALTURA_MAPA - ALTURA)
+        camera_ativa = False
+
+    # Colisão faz voltar do começo
     for i in inimigos:
         if jogador.rect.inflate(-20, -20).colliderect(i.rect.inflate(-10, -10)):
             reinicio -= 1
             jogador.rect.topleft = spawn
+            camera_y = float(ALTURA_MAPA - ALTURA)
+            camera_ativa = False
             break
 
     # Desenho
     tela.fill((0, 255, 0))
     # cenário por cima do fill, antes do resto
-    # tela.blit(cenario, (0, 0)) - comentei por não ter cenario
+    # tela.blit(cenario, (0, -camera_y))  # <--- Quando reativarem o cenário, use -camera_y
 
-# desenhar inimigo
+    # Desenho temporário das ruas para visualizar a câmera subindo/descendo
+    for f in FAIXAS:
+        rua_rect = pygame.Rect(0, f.y - 40 - camera_y, LARGURA, 80)
+        pygame.draw.rect(tela, (60, 60, 60), rua_rect)
+
+    # desenhar inimigo
     for i in inimigos:
-        i.desenhar(tela)
-    jogador.desenhar(tela)
+        i.desenhar(tela, camera_y)
+    jogador.desenhar(tela, camera_y)
+
     pygame.display.flip()
     relogio.tick(60)
+
 pygame.quit()
