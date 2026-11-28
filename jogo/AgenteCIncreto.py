@@ -2,7 +2,7 @@ import pygame
 import os
 import random
 import mapa
- 
+
 pygame.init()
 LARGURA, ALTURA = 1366, 720
 tela = pygame.display.set_mode((LARGURA, ALTURA))
@@ -11,7 +11,7 @@ relogio = pygame.time.Clock()
 CAMINHO = os.path.dirname(os.path.abspath(__file__))
 PASTA_ASSETS = os.path.join(CAMINHO, "assets")
 reinicio = 1
- 
+
 # ---------- FASE ----------
 # Uma letra por faixa de 72 px, de cima (chegada) para baixo (começo).
 # G = grama, C = calçada, R = rua, B = ciclovia, F = chegada.
@@ -27,14 +27,10 @@ VELOCIDADES = {
 ALTURA_MAPA = len(LAYOUT) * mapa.ALTURA_FAIXA
 MAPA_RECT = pygame.Rect(0, 0, LARGURA, ALTURA_MAPA)
 
-#Lucas Araujo: mexi na velocidade da camera que Flavio tinha colocado pois estava muito rapido, acho que assim ficou melhor
- #VELOCIDADE_CAMERA caiu de 0.5 para 0.3.
- #Criei SUAVIZACAO_CAMERA = 0.08, e agora a câmera se aproxima do jogador aos poucos em vez de pular para a posição dele.
-
 VELOCIDADE_CAMERA = 0.3   # quanto a câmera sobe sozinha por frame depois do 1º passo
 SUAVIZACAO_CAMERA = 0.08  # de 0 a 1: quanto menor, mais devagar a câmera acompanha o jogador
 CAMERA_INICIAL = float(ALTURA_MAPA - ALTURA)  # começa mostrando o fundo
- 
+
 # ---------- MENU ----------
 capa = pygame.image.load(os.path.join(
     PASTA_ASSETS, "capa", "capa_agente_cincretov1.png")).convert()
@@ -44,16 +40,16 @@ capa = pygame.transform.scale(capa, (largura_capa, ALTURA))
 capa_rect = capa.get_rect(center=(LARGURA // 2, ALTURA // 2))
 fonte_menu = pygame.font.SysFont(None, 48)
 fonte_titulo = pygame.font.SysFont(None, 96)
- 
- 
+
+
 def texto_com_sombra(texto, fonte, centro):
     sombra = fonte.render(texto, True, (0, 0, 0))
     frente = fonte.render(texto, True, (255, 255, 255))
     pos = frente.get_rect(center=centro)
     tela.blit(sombra, pos.move(3, 3))
     tela.blit(frente, pos)
- 
- 
+
+
 def desenhar_menu():
     tela.fill((18, 14, 32))  # cor das faixas laterais
     tela.blit(capa, capa_rect)
@@ -61,8 +57,8 @@ def desenhar_menu():
     if pygame.time.get_ticks() % 1000 < 600:
         texto_com_sombra("Pressione qualquer tecla para iniciar",
                          fonte_menu, (LARGURA // 2, ALTURA - 60))
- 
- 
+
+
 class Inimigo:
     def __init__(self, y, direcao, velocidade, imagem):
         # vira a imagem para o lado em que ele anda
@@ -73,24 +69,24 @@ class Inimigo:
         self.rect.x = -self.rect.w if direcao > 0 else LARGURA
         self.direcao = direcao
         self.velocidade = velocidade
- 
+
     def mover(self):
         self.rect.x += self.direcao * self.velocidade
- 
+
     def saiu(self):
         return self.rect.right < 0 or self.rect.left > LARGURA
- 
+
     def desenhar(self, superficie, camera_y):
         superficie.blit(self.imagem, self.rect.move(0, -camera_y))
- 
- 
+
+
 class Faixa:
     def __init__(self, y, direcao, velocidade, intervalo, imagem):
         self.y, self.direcao, self.velocidade = y, direcao, velocidade
         self.intervalo = intervalo  # intervalo entre os inimigos surgindo
         self.imagem = imagem
         self.proximo = 0            # quando nasce o próximo
- 
+
     def gerar(self, agora, inimigos):
         if agora >= self.proximo:
             inimigos.append(Inimigo(self.y, self.direcao,
@@ -98,12 +94,14 @@ class Faixa:
             # randomiza para os inimigos surgirem de forma irregular
             self.proximo = agora + random.randint(
                 int(self.intervalo * 0.7), int(self.intervalo * 1.5))
- 
+
+
 def carregar_bicicleta():
     img = pygame.image.load(os.path.join(
         PASTA_ASSETS, "bicicleta_1.png")).convert_alpha()
     return pygame.transform.scale(img, (90, 70))
- 
+
+
 def carregar_carro():
     caminho = os.path.join(PASTA_ASSETS, "carro_1.png")
     if os.path.exists(caminho):
@@ -118,26 +116,59 @@ def carregar_carro():
     pygame.draw.circle(img, (20, 20, 20), (26, 50), 8)
     pygame.draw.circle(img, (20, 20, 20), (104, 50), 8)
     return img
- 
+
+
 IMAGENS_INIMIGO = {
     "bicicleta": carregar_bicicleta(),
     "carro": carregar_carro(),
 }
- 
+
+
 def criar_faixas(fase):
     """Cria as Faixas de inimigos nos lugares que o mapa indica."""
     return [Faixa(y, direcao, velocidade, intervalo, IMAGENS_INIMIGO[tipo])
             for y, direcao, velocidade, intervalo, tipo in fase.faixas_inimigos()]
- 
+
+
 class Jogador:
+    QUADROS_POR_PASSO = 6  # a cada 6 frames do jogo troca o quadro da animação
+
     def __init__(self, x, y):
-        self.imagem = pygame.image.load(os.path.join(
-            PASTA_ASSETS, "perna_cabeluda.png")).convert_alpha()
-        self.imagem = pygame.transform.scale(self.imagem, (60, 60))
+        parado = self.carregar("perna_cabeluda.png")
+        andando = self.carregar_folha("perna_andando.png") or [parado]
+        # o sprite original olha para a direita; a esquerda é o espelho
+        self.imagens = {
+            "direita": {"parado": parado, "andando": andando},
+            "esquerda": {
+                "parado": pygame.transform.flip(parado, True, False),
+                "andando": [pygame.transform.flip(q, True, False) for q in andando],
+            },
+        }
+        self.olhando = "direita"  # ao subir ou descer, mantém o último lado
+        self.passo = 0            # conta os frames em que ele está andando
+        self.imagem = parado
         self.rect = self.imagem.get_rect(topleft=(x, y))
         self.velocidade = 5
         self.eixo = "x"  # último eixo em que ele andou
- 
+
+    @staticmethod
+    def carregar(nome):
+        imagem = pygame.image.load(os.path.join(
+            PASTA_ASSETS, nome)).convert_alpha()
+        return pygame.transform.scale(imagem, (60, 60))
+
+    @staticmethod
+    def carregar_folha(nome, quadros=4):
+        """Lê uma folha com os quadros lado a lado; None se o arquivo não existir."""
+        caminho = os.path.join(PASTA_ASSETS, nome)
+        if not os.path.exists(caminho):
+            return None
+        folha = pygame.image.load(caminho).convert_alpha()
+        largura = folha.get_width() // quadros
+        return [pygame.transform.scale(
+            folha.subsurface((i * largura, 0, largura, folha.get_height())),
+            (60, 60)) for i in range(quadros)]
+
     def mover(self, teclas):
         x0, y0 = self.rect.topleft  # posição antes de mover
         if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
@@ -161,30 +192,52 @@ class Jogador:
         elif dy:
             self.eixo = "y"
         # TODO: voltar para (x0, y0) ao bater nas HITBOXES do cenário
- 
+
+        # animação: anda quando saiu do lugar, volta ao sprite parado quando para
+        dx, dy = self.rect.x - x0, self.rect.y - y0
+        if dx:
+            self.olhando = "direita" if dx > 0 else "esquerda"
+        poses = self.imagens[self.olhando]
+        if dx or dy:
+            self.passo += 1
+            quadros = poses["andando"]
+            self.imagem = quadros[(self.passo // self.QUADROS_POR_PASSO) % len(quadros)]
+        else:
+            self.passo = 0
+            self.imagem = poses["parado"]
+
     def desenhar(self, superficie, camera_y):
         superficie.blit(self.imagem, self.rect.move(0, -camera_y))
- 
+
+
 def nova_partida():
     """Monta a fase do zero: mapa, jogador no começo, faixas e inimigos vazios."""
     fase = mapa.Mapa("UFPE", LAYOUT, VELOCIDADES)
     return fase, Jogador(*fase.posicao_inicial()), criar_faixas(fase), []
- 
+
+
 fase, jogador, FAIXAS, inimigos = nova_partida()
 # o mapa inteiro é desenhado uma vez só; a câmera mostra um pedaço dele
+CAMINHO_MAPA = os.path.join(PASTA_ASSETS, "mapa", "mapa_ufpe.png")
 mundo = pygame.Surface((LARGURA, ALTURA_MAPA))
-fase.desenhar(mundo)
+if os.path.exists(CAMINHO_MAPA):
+    desenho = pygame.image.load(CAMINHO_MAPA).convert()
+    mundo.blit(pygame.transform.scale(desenho, (LARGURA, ALTURA_MAPA)), (0, 0))
+else:
+    fase.desenhar(mundo)
 camera_y = CAMERA_INICIAL
 camera_ativa = False
 estado = "menu"  # "menu", "jogo" ou "vitoria"
- 
+
+
 def desenhar_jogo():
     cam = int(camera_y)
     tela.blit(mundo, (0, -cam))
     for i in inimigos:
         i.desenhar(tela, cam)
     jogador.desenhar(tela, cam)
- 
+
+
 rodando = True
 while rodando:
     for evento in pygame.event.get():
@@ -197,24 +250,24 @@ while rodando:
                 estado = "jogo"
             elif estado == "vitoria":
                 estado = "menu"
- 
+
     if estado == "menu":
         desenhar_menu()
- 
+
     elif estado == "jogo":
         teclas = pygame.key.get_pressed()
         pos_antes = jogador.rect.topleft
         jogador.mover(teclas)
         if jogador.rect.topleft != pos_antes:
             camera_ativa = True
- 
+
         agora = pygame.time.get_ticks()
         for f in FAIXAS:
             f.gerar(agora, inimigos)
         for i in inimigos:
             i.mover()
         inimigos = [i for i in inimigos if not i.saiu()]
- 
+
         # a câmera só começa a subir depois do primeiro passo do jogador
         if camera_ativa:
             camera_y -= VELOCIDADE_CAMERA
@@ -222,7 +275,7 @@ while rodando:
             if alvo_camera < camera_y:
                 camera_y += (alvo_camera - camera_y) * SUAVIZACAO_CAMERA
             camera_y = max(0, camera_y)
- 
+
         # a câmera engoliu o jogador ou um inimigo o atingiu: volta ao começo
         engolido = jogador.rect.top > camera_y + ALTURA
         atingido = any(
@@ -233,12 +286,12 @@ while rodando:
             jogador.rect.topleft = fase.posicao_inicial()
             camera_y = CAMERA_INICIAL
             camera_ativa = False
- 
+
         if fase.chegou_no_fim(jogador.rect):
             estado = "vitoria"
- 
+
         desenhar_jogo()
- 
+
     else:  # vitoria
         desenhar_jogo()
         escurecer = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
@@ -248,8 +301,7 @@ while rodando:
                          (LARGURA // 2, ALTURA // 2 - 40))
         texto_com_sombra("Pressione qualquer tecla para voltar ao menu",
                          fonte_menu, (LARGURA // 2, ALTURA // 2 + 40))
- 
+
     pygame.display.flip()
     relogio.tick(60)
 pygame.quit()
- 
