@@ -14,15 +14,12 @@ reinicio = 1
 
 # ---------- FASE ----------
 # Uma letra por faixa de 72 px, de cima (chegada) para baixo (começo).
-# G = grama, C = calçada, R = rua, B = ciclovia, F = chegada.
-LAYOUT = [
-    "F", "C", "R", "R", "C", "B", "G", "B", "C", "G",
-    "R", "R", "C", "B", "G", "B", "R", "C", "B", "G",
-    "C", "R", "R", "C", "B", "B", "G", "C", "R", "G",
-]
+# G = grama, C = calçada, R = rua, B = ciclovia,
+# I = prédio do CIn, E = pátio do CIn (começo), P = ponto de ônibus (chegada)
+LAYOUT = mapa.LAYOUT_UFPE
 VELOCIDADES = {
-    "rua": (6, 1300),       # (velocidade, intervalo entre carros em ms)
-    "ciclovia": (4, 1600),  # (velocidade, intervalo entre bicicletas em ms)
+    "rua": (3, 2600),       # (velocidade, intervalo entre carros em ms)
+    "ciclovia": (2, 3200),  # (velocidade, intervalo entre bicicletas em ms)
 }
 ALTURA_MAPA = len(LAYOUT) * mapa.ALTURA_FAIXA
 MAPA_RECT = pygame.Rect(0, 0, LARGURA, ALTURA_MAPA)
@@ -169,7 +166,12 @@ class Jogador:
             folha.subsurface((i * largura, 0, largura, folha.get_height())),
             (60, 60)) for i in range(quadros)]
 
-    def mover(self, teclas):
+    def pes(self):
+        """Parte de baixo do boneco: é ela que bate nas árvores, postes etc."""
+        return pygame.Rect(self.rect.x + 12, self.rect.bottom - 18,
+                           self.rect.w - 24, 16)
+
+    def mover(self, teclas, fase=None):
         x0, y0 = self.rect.topleft  # posição antes de mover
         if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
             self.rect.x -= self.velocidade
@@ -191,7 +193,9 @@ class Jogador:
             self.eixo = "x"
         elif dy:
             self.eixo = "y"
-        # TODO: voltar para (x0, y0) ao bater nas HITBOXES do cenário
+        # bateu numa árvore, arbusto, poste ou no prédio do CIn: volta
+        if fase and fase.bloqueia(self.pes()):
+            self.rect.topleft = (x0, y0)
 
         # animação: anda quando saiu do lugar, volta ao sprite parado quando para
         dx, dy = self.rect.x - x0, self.rect.y - y0
@@ -257,7 +261,7 @@ while rodando:
     elif estado == "jogo":
         teclas = pygame.key.get_pressed()
         pos_antes = jogador.rect.topleft
-        jogador.mover(teclas)
+        jogador.mover(teclas, fase)
         if jogador.rect.topleft != pos_antes:
             camera_ativa = True
 
